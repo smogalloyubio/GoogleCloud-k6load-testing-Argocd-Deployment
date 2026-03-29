@@ -18,5 +18,5 @@ spec:
       - name: my-app
         image: rukevweubio/my-freash-app:latest
         ports:
-          name: http
-        - containerPort: 3000
+         - name: http
+           containerPort: 3000
