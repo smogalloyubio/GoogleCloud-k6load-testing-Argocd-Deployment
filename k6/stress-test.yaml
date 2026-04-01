@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-load-test
+spec:
+  template:
+    spec:
+      containers:
+        - name: k6
+          image: your-dockerhub-username/k6-tests:latest
+          args: ["run", "stress.js"]
+          env:
+            - name: BASE_URL
+              value: "http://my-app:3000"
+      restartPolicy: Never
