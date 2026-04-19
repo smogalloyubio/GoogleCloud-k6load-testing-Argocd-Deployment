@@ -37,16 +37,7 @@ jobs:
       - name: Build load test image
         uses: docker/build-push-action@v5
         with:
-          context: ./k6/Dockerfile mls
-
-
-
-
-
-
-
-
-          
+          context: ./k6/Dockerfile 
           load: true
           tags: ${{ env.IMAGE_TEST_NAME }}:${{ env.IMAGE_TEST_TAG }}
 
