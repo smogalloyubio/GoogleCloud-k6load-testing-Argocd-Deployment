@@ -9,7 +9,7 @@ spec:
   source:
     repoURL: https://github.com/smogalloyubio/GoogleCloud-deployment-k6-load-testing-argocd.git 
     targetRevision: main
-    path: k6
+    path: k6/cronjob
 
   destination:
     server: https://kubernetes.default.svc

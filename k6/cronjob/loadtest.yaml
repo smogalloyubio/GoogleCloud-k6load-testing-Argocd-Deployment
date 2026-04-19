@@ -23,7 +23,7 @@ spec:
 
           containers:
             - name: k6
-              image: rukevweubio/my-k6-test:0.51.0
+              image: rukevweubio/my-load-test:v2
               imagePullPolicy: Always
               args: ["run", "load.js"]
               env:
