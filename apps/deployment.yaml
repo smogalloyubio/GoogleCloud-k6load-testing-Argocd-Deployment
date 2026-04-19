@@ -15,39 +15,32 @@ spec:
       labels:
         app: my-app
     spec:
-    
       automountServiceAccountToken: false
-      
       securityContext:
         runAsNonRoot: true
-        
         runAsUser: 10000
         seccompProfile:
           type: RuntimeDefault
-      
       containers:
       - name: my-app
-      
         image: rukevweubio/mycluster-app:v3
-       
         imagePullPolicy: Always
         ports:
          - name: http
            containerPort: 3000
-        
+        env:
+          - name: DATA_FILE
+            value: "/tmp/data.json"
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true 
           capabilities:
             drop:
               - ALL
-      
         volumeMounts:
+        # We only mount /tmp. Removing the /app/dist mount fixes the "Module Not Found" error.
         - name: tmp-storage
           mountPath: /tmp
-        - name: data-storage
-          mountPath: /app/dist
-
         resources:
           requests:
             memory: "64Mi"
@@ -55,7 +48,6 @@ spec:
           limits:
             memory: "120Mi"
             cpu: "250m"
-            
         readinessProbe:
           httpGet:
             path: /
@@ -68,10 +60,6 @@ spec:
             port: 3000
           initialDelaySeconds: 15
           periodSeconds: 20
-
-    
       volumes:
       - name: tmp-storage
-        emptyDir: {}
-      - name: data-storage
         emptyDir: {}
