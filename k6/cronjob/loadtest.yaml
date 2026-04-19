@@ -2,6 +2,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: k6-load-test-scheduled
+  namespace: dev
 spec:
 
   schedule: "*/2 * * * *"
