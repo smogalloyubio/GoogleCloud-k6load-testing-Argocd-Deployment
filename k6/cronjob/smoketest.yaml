@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: k6-smoke-test-scheduled
+spec:
+  schedule: "*/2 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 10
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: k6
+              image: rukevweubio/my-k6-test:latest
+              args: ["run", "smoke.js"]
+              env:
+                - name: BASE_URL
+                  value: "http://my-app:3000"
+          restartPolicy: OnFailure
