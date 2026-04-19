@@ -1,24 +1,23 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: k6-tests-file
+  name: my-app
   namespace: argocd
 spec:
   project: default
 
   source:
-    repoURL: https://github.com/smogalloyubio/GoogleCloud-deployment-k6-load-testing-argocd.git 
+    repoURL: https://github.com/smogalloyubio/GoogleCloud-deployment-k6-load-testing-argocd.git  
     targetRevision: main
-    path: k6/cronjob
-
+    path: apps/
   destination:
     server: https://kubernetes.default.svc
     namespace: dev
 
-  syncPolicy: 
+  syncPolicy:
     automated:
       prune: true
       selfHeal: true
-  
+
     syncOptions:
       - CreateNamespace=true
