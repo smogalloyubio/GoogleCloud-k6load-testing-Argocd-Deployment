@@ -73,7 +73,7 @@ Infrastructure Layer
 | Argo CD           | GitOps                  | Declarative deployments              |
 | Kubernetes        | Orchestration           | Scalability & resilience             |
 | K6                | Performance Testing     | Load & stress testing                |
-
+---
 ## Workflow
 - Developer pushes code to GitHub
 - GitHub Actions builds:
@@ -84,3 +84,13 @@ Infrastructure Layer
 - Application is deployed in cluster
 - K6 runs performance tests
 - Results validate application stability
+---
+
+## CI Pipeline – GitHub Actions (Build & Push to Docker Hub)
+This section describes how the CI pipeline is implemented using GitHub Actions to automate the build, test, and deployment of both the application and the K6 testing image. The CI pipeline is triggered automatically when code is pushed to the repository.
+It performs the following steps:
+- Check out the source code from GitHub
+- Build a Docker image for the web application
+- Build Docker image for K6 testing tool
+- Run security and validation checks
+- Authenticate with Docker Hub
