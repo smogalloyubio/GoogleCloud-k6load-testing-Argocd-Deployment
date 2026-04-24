@@ -93,4 +93,117 @@ It performs the following steps:
 - Build a Docker image for the web application
 - Build Docker image for K6 testing tool
 - Run security and validation checks
-- Authenticate with Docker Hub
+- Authenticate with Docker 
+
+  ```
+      name: Build, Test, and Push Docker Images
+    
+    on:
+      push:
+        branches: [ main ]
+    
+    env:
+      IMAGE_NAME: rukevweubio/mycluster-app
+      IMAGE_TAG: v3
+      IMAGE_TEST_NAME: rukevweubio/my-load-test
+      IMAGE_TEST_TAG: v2
+    
+    jobs:
+      build_test_push:
+        runs-on: ubuntu-latest
+    
+        steps:
+          - name: Checkout code
+            uses: actions/checkout@v4
+    
+       
+          - name: Login to Docker Hub
+            uses: docker/login-action@v3
+            with:
+              username: ${{ secrets.DOCKER_USERNAME }}
+              password: ${{ secrets.DOCKER_PASSWORD }}
+    
+         
+          - name: Build main app image
+            uses: docker/build-push-action@v5
+            with:
+              context: .
+              load: true   
+              tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+    
+       
+          - name: Build load test image
+            uses: docker/build-push-action@v5
+            with:
+              context: ./k6
+              load: true
+              tags: ${{ env.IMAGE_TEST_NAME }}:${{ env.IMAGE_TEST_TAG }}
+    
+    
+          - name: Scan main image with Trivy
+            uses: aquasecurity/trivy-action@master
+            with:
+              image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+              severity: CRITICAL,HIGH
+              exit-code: 0
+    
+         
+          - name: Scan load test image with Trivy
+            uses: aquasecurity/trivy-action@master
+            with:
+              image-ref: ${{ env.IMAGE_TEST_NAME }}:${{ env.IMAGE_TEST_TAG }}
+              severity: CRITICAL,HIGH
+              exit-code: 0
+    
+          - name: Push main image
+            if: success()
+            run: docker push ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+    
+          - name: Push load test image
+            if: success()
+            run: docker push ${{ env.IMAGE_TEST_NAME }}:${{ env.IMAGE_TEST_TAG }}
+    
+      checkov_scan:
+        runs-on: ubuntu-latest
+        needs: build_test_push
+    
+        steps:
+          - name: Checkout code
+            uses: actions/checkout@v4
+    
+         
+          - name: Scan main Dockerfile
+            uses: bridgecrewio/checkov-action@master
+            with:
+              directory: .
+              framework: dockerfile
+    
+        
+          - name: Scan k6 Dockerfile
+            uses: bridgecrewio/checkov-action@master
+            with:
+              directory: ./k6
+              framework: dockerfile
+    
+        
+          - name: Scan Kubernetes app manifests
+            uses: bridgecrewio/checkov-action@master
+            with:
+              directory: ./apps
+              framework: kubernetes
+              skip_check: CKV_K8S_43,CKV_K8S_38,CKV_K8S_40,CKV_K8S_15,CKV2_K8S_6
+    
+          - name: Scan load test manifests
+            uses: bridgecrewio/checkov-action@master
+            with:
+              directory: ./k6/cronjob
+              framework: kubernetes
+              skip_check: CKV_K8S_43,CKV_K8S_38,CKV_K8S_40,CKV_K8S_15,CKV2_K8S_6
+    
+          - name: Scan load test manifests
+            uses: bridgecrewio/checkov-action@master
+            with:
+              directory: ./k6/loadtest  
+              framework: kubernetes
+              skip_check: CKV_K8S_43,CKV_K8S_38,CKV_K8S_40,CKV_K8S_15,CKV2_K8S_6
+  ```
