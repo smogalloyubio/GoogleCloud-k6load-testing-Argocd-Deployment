@@ -216,18 +216,48 @@ Step 1: Create Kubernetes Namespaces
 To properly organize cluster resources, two main namespaces were created:
 argocd → for Argo CD (GitOps control plane)
 dev → for the application workloads (web app + K6 testing)
+---
+### Argo CD CLI Setup & Git Repository Connection
+After installing Argo CD on the Kubernetes cluster, the next step was to configure access using the Argo CD CLI and connect the GitHub repository for GitOps-based deployments.
+Step 1: Install Argo CD CLI: The Argo CD CLI is installed locally to interact with the Argo CD server.
+```
+# Download Argo CD CLI
+curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+
+# Make it executable
+chmod +x argocd
+
+# Move to system path
+sudo mv argocd /usr/local/bin/
+✅ Verify Installation
+argocd version --client
+```
+Step 2: Get Argo CD Server IP
+Retrieve the external IP of the Argo CD server:
 
 ```
-# Create Argo CD namespace
-kubectl create namespace argocd
+kubectl get svc argocd-server -n argocd
+argocd login  localhost:port 
+argocd login <ARGOCD_SERVER_IP> --username admin --password <INITIAL_PASSWORD> --insecure
 
-# Create application namespace
-kubectl create namespace dev
-kubectl create namespace my-app  #  for application
+kubectl get secret argocd-initial-admin-secret -n argocd \
+-o jsonpath="{.data.password}" | base64 -d
 
-### install argocd on the cluster
+Connect your GitHub repository to Argo CD.
 
-kubectl apply -n argocd \
--f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.
+argocd repo add https://github.com/smogalloyubio/GoogleCloud-k6load-testing-Argocd-Deployment.git
+
+This step tells Argo CD what to deploy and where.
+
+argocd app create webapp \
+--repo https://github.com/smogalloyubio/GoogleCloud-k6load-testing-Argocd-Deployment.git
+--path manifests \
+--dest-server https://kubernetes.default.svc \
+--dest-namespace dev
+--sync-option
+--sync-policy 
+argocd app sync webapp
+argocd app get webapp
+
 ```
-![argocd installtion](
+![argocd installtion](https://github.com/smogalloyubio/GoogleCloud-k6load-testing-Argocd-Deployment/blob/main/picture/Screenshot%202026-04-19%20at%2018.04.59.png)
