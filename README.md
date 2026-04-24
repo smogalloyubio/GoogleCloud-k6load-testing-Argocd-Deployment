@@ -287,8 +287,60 @@ USER k6
 
 ENTRYPOINT ["k6"]
 ```
+---
 Step 3: Create Kubernetes Manifest for K6
 K6 runs as a Kubernetes Job (or CronJob for repeated tests).
+```
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: k6-smoke-test-scheduled
+  namespace: dev
+spec:
+  schedule: "*/2 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 10
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            role: k6-tester
+        spec:
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10000
+            seccompProfile:
+              type: RuntimeDefault
+          
+          automountServiceAccountToken: false
+
+          containers:
+            - name: k6
+              image: rukevweubio/my-load-test:v2
+              imagePullPolicy: Always
+              args: ["run", "smoke.js"]
+              env:
+                - name: BASE_URL
+                  value: "http://my-app:3000"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+              resources:
+                requests:
+                  cpu: "100m"
+                  memory: "64Mi"
+                limits:
+                  cpu: "250m"
+                  memory: "128Mi"
+
+          restartPolicy: OnFailure
+```
+---
+Step 4: Example K6 Test Script
 ```
 
 
