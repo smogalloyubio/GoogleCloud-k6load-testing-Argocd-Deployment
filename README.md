@@ -207,3 +207,27 @@ It performs the following steps:
               framework: kubernetes
               skip_check: CKV_K8S_43,CKV_K8S_38,CKV_K8S_40,CKV_K8S_15,CKV2_K8S_6
   ```
+![Gitaction workflow](https://github.com/smogalloyubio/GoogleCloud-k6load-testing-Argocd-Deployment/blob/main/picture/Screenshot%202026-04-19%20at%2018.07.45.png)
+
+
+##  Argo CD Installation & Namespace Setup
+After provisioning the Kubernetes cluster  the next step was to configure the GitOps control plane using Argo CD and prepare isolated namespaces for workloads.
+Step 1: Create Kubernetes Namespaces
+To properly organize cluster resources, two main namespaces were created:
+argocd → for Argo CD (GitOps control plane)
+dev → for the application workloads (web app + K6 testing)
+
+```
+# Create Argo CD namespace
+kubectl create namespace argocd
+
+# Create application namespace
+kubectl create namespace dev
+kubectl create namespace my-app  #  for application
+
+### install argocd on the cluster
+
+kubectl apply -n argocd \
+-f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.
+```
+![argocd installtion](
