@@ -85,7 +85,6 @@ Infrastructure Layer
 - K6 runs performance tests
 - Results validate application stability
 ---
-
 ## CI Pipeline – GitHub Actions (Build & Push to Docker Hub)
 This section describes how the CI pipeline is implemented using GitHub Actions to automate the build, test, and deployment of both the application and the K6 testing image. The CI pipeline is triggered automatically when code is pushed to the repository.
 It performs the following steps:
@@ -163,63 +162,23 @@ It performs the following steps:
             if: success()
             run: docker push ${{ env.IMAGE_TEST_NAME }}:${{ env.IMAGE_TEST_TAG }}
     
-      checkov_scan:
-        runs-on: ubuntu-latest
-        needs: build_test_push
-    
-        steps:
-          - name: Checkout code
-            uses: actions/checkout@v4
-    
-         
-          - name: Scan main Dockerfile
-            uses: bridgecrewio/checkov-action@master
-            with:
-              directory: .
-              framework: dockerfile
-    
-        
-          - name: Scan k6 Dockerfile
-            uses: bridgecrewio/checkov-action@master
-            with:
-              directory: ./k6
-              framework: dockerfile
-    
-        
-          - name: Scan Kubernetes app manifests
-            uses: bridgecrewio/checkov-action@master
-            with:
-              directory: ./apps
-              framework: kubernetes
-              skip_check: CKV_K8S_43,CKV_K8S_38,CKV_K8S_40,CKV_K8S_15,CKV2_K8S_6
-    
-          - name: Scan load test manifests
-            uses: bridgecrewio/checkov-action@master
-            with:
-              directory: ./k6/cronjob
-              framework: kubernetes
-              skip_check: CKV_K8S_43,CKV_K8S_38,CKV_K8S_40,CKV_K8S_15,CKV2_K8S_6
-    
-          - name: Scan load test manifests
-            uses: bridgecrewio/checkov-action@master
-            with:
-              directory: ./k6/loadtest  
-              framework: kubernetes
-              skip_check: CKV_K8S_43,CKV_K8S_38,CKV_K8S_40,CKV_K8S_15,CKV2_K8S_6
+      
   ```
 ![Gitaction workflow](https://github.com/smogalloyubio/GoogleCloud-k6load-testing-Argocd-Deployment/blob/main/picture/Screenshot%202026-04-19%20at%2018.07.45.png)
-
-
-##  Argo CD Installation & Namespace Setup
-After provisioning the Kubernetes cluster  the next step was to configure the GitOps control plane using Argo CD and prepare isolated namespaces for workloads.
-Step 1: Create Kubernetes Namespaces
-To properly organize cluster resources, two main namespaces were created:
-argocd → for Argo CD (GitOps control plane)
-dev → for the application workloads (web app + K6 testing)
 ---
-### Argo CD CLI Setup & Git Repository Connection
-After installing Argo CD on the Kubernetes cluster, the next step was to configure access using the Argo CD CLI and connect the GitHub repository for GitOps-based deployments.
-Step 1: Install Argo CD CLI: The Argo CD CLI is installed locally to interact with the Argo CD server.
+Argo CD is used as the GitOps controller for continuous deployment.
+
+- Install Argo CD in Kubernetes cluster
+- Create namespaces:
+- argocd → GitOps control plane
+- dev → application + K6 workloads
+- Connect Argo CD CLI to cluster
+- Login using admin credentials
+- Register GitHub repository
+- Create application pointing to manifests
+- Enable automatic sync
+Result:
+Any GitHub change automatically updates the Kubernetes cluster.
 ```
 # Download Argo CD CLI
 curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
@@ -229,13 +188,8 @@ chmod +x argocd
 
 # Move to system path
 sudo mv argocd /usr/local/bin/
-✅ Verify Installation
-argocd version --client
-```
-Step 2: Get Argo CD Server IP
-Retrieve the external IP of the Argo CD server:
 
-```
+argocd version --client
 kubectl get svc argocd-server -n argocd
 argocd login  localhost:port 
 argocd login <ARGOCD_SERVER_IP> --username admin --password <INITIAL_PASSWORD> --insecure
@@ -284,11 +238,11 @@ COPY --chown=k6:k6 load.js .
 COPY --chown=k6:k6 stress.js .
 HEALTHCHECK --interval=30s --timeout=3s \
 CMD k6 version || exit 1
-
 USER k6
-
 ENTRYPOINT ["k6"]
+
 ```
+
 ---
 Step 3: Create Kubernetes Manifest for K6
 K6 runs as a Kubernetes Job (or CronJob for repeated tests).
@@ -373,3 +327,35 @@ export default function () {
 
 
 ![k6 load testing](https://github.com/smogalloyubio/GoogleCloud-k6load-testing-Argocd-Deployment/blob/main/picture/Screenshot%202026-04-19%20at%2017.52.46.png)
+
+![argocd k6 loading testing ](https://github.com/smogalloyubio/GoogleCloud-k6load-testing-Argocd-Deployment/blob/main/picture/Screenshot%202026-04-19%20at%2018.04.06.png)
+
+## Kubernetes Network Policy (K6 → Application Traffic Control)
+A Kubernetes NetworkPolicy is a security rule that controls:
+
+- Which pods can talk to other pods
+- Which namespaces are allowed to send traffic
+- Which ports and protocols are permitted
+In this project, it was used to enforce controlled traffic flow between the K6 testing environment and the application namespace.
+Why was it used in this project by  default? Kubernetes allows all pods to communicate freely inside the cluster.
+That is a security risk. So in this project, NetworkPolicy was implemented to:
+-  Restrict traffic to only allowed sources
+-  Ensure only K6 can access the application
+-   block all other unwanted traffic inside the cluster
+-  simulate real production-grade security controls
+-   Ensure load testing traffic is controlled and measurable
+----
+## How it works in your setup
+1. K6 runs in a separate namespace
+dev namespace → application
+k6 namespace → performance testing
+This isolation ensures clean separation of workloads.
+
+2. NetworkPolicy allows ONLY K6 traffic
+The policy defines:
+Ingress rules → who can access the app
+Namespace selector → only K6 namespace is allowed
+Pod selector → only specific app pods are reachable
+Port control → only application port is exposed (e.g., 3000)
+
+```
