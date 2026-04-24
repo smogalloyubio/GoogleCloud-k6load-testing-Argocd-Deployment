@@ -376,3 +376,4 @@ spec:
     - protocol: TCP
       port: 3000
 ```
+![k6 loading  testing](https://github.com/smogalloyubio/GoogleCloud-k6load-testing-Argocd-Deployment/blob/main/picture/Screenshot%202026-04-19%20at%2018.05.44.png)
